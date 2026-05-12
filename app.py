@@ -8,223 +8,265 @@ def home():
 <!DOCTYPE html>
 <html>
 <head>
-<title>Battle Royale Arcade</title>
+<title>Emoji Game PRO MAX</title>
 
 <style>
 body{
     margin:0;
-    overflow:hidden;
-    background:#111;
     font-family:Arial;
+    text-align:center;
     color:white;
+
+    background:url("https://media.giphy.com/media/xT0GqtpF1NWd9VZL7q/giphy.gif") no-repeat center center fixed;
+    background-size:cover;
 }
 
-#ui{
-    position:absolute;
-    top:10px;
-    left:10px;
-    z-index:10;
-}
-
-#deathScreen{
-    display:none;
+/* SCREENS */
+.screen{
     position:absolute;
     width:100%;
     height:100%;
-    background:black;
-    color:red;
-    font-size:50px;
-    text-align:center;
-    padding-top:200px;
 }
 
-.player{
-    width:40px;
-    height:40px;
-    background:green;
-    position:absolute;
-    bottom:50px;
+#menu{ display:block; }
+#game{ display:none; }
+#gameover{ display:none; }
+#pause{ display:none; }
+
+/* BUTTONS */
+button{
+    padding:12px 18px;
+    margin:8px;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    font-size:16px;
 }
 
-.enemy{
-    width:40px;
-    height:40px;
-    background:red;
-    position:absolute;
+/* HUD */
+#hud{
+    display:flex;
+    justify-content:space-around;
+    font-size:18px;
+    margin-top:10px;
 }
 
-.chest{
-    width:30px;
-    height:30px;
-    background:gold;
-    position:absolute;
+/* BIG EMOJI */
+#emoji{
+    font-size:100px;
+    margin:25px;
 }
 
+/* TIMER */
+#timer{
+    font-size:20px;
+    color:yellow;
+}
+
+/* HANDICAP */
+#handicap{
+    display:none;
+    color:lime;
+    font-weight:bold;
+}
 </style>
 </head>
 
 <body>
 
-<div id="ui">
-❤️ HP: <span id="hp">100</span><br>
-💰 Money: <span id="money">0</span><br>
-📈 Level: <span id="level">1</span><br>
-🔊 Volume: <input type="range" min="0" max="100" value="50" id="vol">
+<!-- 🎮 MENU -->
+<div id="menu" class="screen">
+
+<h1>🎮 EMOJI GAME PRO</h1>
+
+<button onclick="setMode('humans')">👤 Humains</button>
+<button onclick="setMode('faces')">😀 Visages</button>
+<button onclick="setMode('cars')">🚗 Voitures</button>
+
+<br><br>
+
+<button onclick="setDiff('normal')">Normal</button>
+<button onclick="setDiff('handicap')">♿ Handicap</button>
+
+<br><br>
+
+<button onclick="startGame()">▶ START</button>
+
 </div>
 
-<div id="deathScreen">
-💀 YOU DIED 💀<br>
-Press R to Retry
+<!-- 🎯 GAME -->
+<div id="game" class="screen">
+
+<div id="hud">
+    <div>Score: <span id="score">0</span></div>
+    <div>Combo: <span id="combo">0</span></div>
+    <div>Level: <span id="level">1</span></div>
 </div>
 
-<div class="player" id="player"></div>
+<div id="timer">⏳ 120</div>
 
-<audio id="music" loop autoplay>
-<source src="https://cdn.pixabay.com/audio/2022/10/16/audio_1f1b8c.mp3">
-</audio>
+<div id="handicap">♿ HANDICAP</div>
+
+<button onclick="pauseGame()">⏸ PAUSE</button>
+
+<div id="emoji">❓</div>
+
+<input id="input" placeholder="type answer">
+<br><br>
+
+<button onclick="check()">SUBMIT</button>
+
+<p id="msg"></p>
+
+</div>
+
+<!-- ⏸ PAUSE -->
+<div id="pause" class="screen">
+
+<h1>⏸ PAUSE</h1>
+
+<button onclick="resumeGame()">▶ RESUME</button>
+<button onclick="goMenu()">🏠 MENU</button>
+
+</div>
+
+<!-- 💀 GAME OVER -->
+<div id="gameover" class="screen">
+
+<h1>💀 GAME OVER</h1>
+
+<p>Your score: <span id="finalScore"></span></p>
+
+<button onclick="restart()">🔁 TRY AGAIN</button>
+<button onclick="goMenu()">🏠 MENU</button>
+
+</div>
 
 <script>
 
-let hp = 100;
-let money = 0;
-let level = 1;
+let mode="humans";
+let score=0;
+let combo=0;
+let level=1;
+let current="";
+let handicap=false;
 
-let player = document.getElementById("player");
+let time=120;
+let timer;
 
-let x = 200;
+const data={
+ humans:["🧑","👨","👩","🧒","👶","🧓"],
+ faces:["😀","😂","😍","😎","😭","😡","😱"],
+ cars:["🚗","🚕","🚙","🏎️","🚓","🚑"]
+};
 
-document.addEventListener("keydown",(e)=>{
+/* MODE */
+function setMode(m){ mode=m; }
 
-    if(e.key=="ArrowLeft") x -= 20;
-    if(e.key=="ArrowRight") x += 20;
+/* DIFF */
+function setDiff(d){ handicap=(d==="handicap"); }
 
-    player.style.left = x+"px";
+/* START */
+function startGame(){
+    document.getElementById("menu").style.display="none";
+    document.getElementById("game").style.display="block";
 
-    if(e.key==" "){
-        shoot();
+    if(handicap){
+        document.getElementById("handicap").style.display="block";
     }
 
-    if(e.key=="r"){
-        location.reload();
+    time=120;
+    score=0;
+    combo=0;
+    level=1;
+
+    startTimer();
+    next();
+}
+
+/* TIMER */
+function startTimer(){
+    timer=setInterval(()=>{
+        time--;
+        document.getElementById("timer").innerText="⏳ "+time;
+
+        if(time<=0){
+            gameOver();
+        }
+    },1000);
+}
+
+/* NEXT */
+function next(){
+    let list=data[mode];
+    current=list[Math.floor(Math.random()*list.length)];
+
+    document.getElementById("emoji").innerText=current;
+    document.getElementById("input").value="";
+}
+
+/* CHECK */
+function check(){
+
+    let g=document.getElementById("input").value.trim();
+
+    let ok=false;
+
+    if(handicap) ok=true;
+    else if(g===current) ok=true;
+
+    if(ok){
+        combo++;
+        score+=combo*10;
+        level++;
+        document.getElementById("msg").innerText="🔥 GOOD";
+    }else{
+        combo=0;
+        document.getElementById("msg").innerText="❌ WRONG";
     }
 
-});
-
-function shoot(){
-
-    document.querySelectorAll(".enemy").forEach(enemy=>{
-
-        if(hit(player,enemy)){
-            enemy.remove();
-
-            money += 100;
-
-            if(Math.random()<0.3){
-                money += 1000; // rare loot feel
-            }
-
-            update();
-        }
-
-    });
-
-    document.querySelectorAll(".chest").forEach(chest=>{
-
-        if(hit(player,chest)){
-            chest.remove();
-
-            let loot = Math.random();
-
-            if(loot<0.6) money += 100;
-            else if(loot<0.85) money += 10000;
-            else money += 100000;
-
-            update();
-        }
-
-    });
-
+    updateUI();
+    setTimeout(next,600);
 }
 
-function spawnEnemy(){
-
-    let e = document.createElement("div");
-    e.classList.add("enemy");
-
-    e.style.left = Math.random()*window.innerWidth+"px";
-    e.style.top = "0px";
-
-    document.body.appendChild(e);
-
-    let t = setInterval(()=>{
-
-        let top = parseInt(e.style.top);
-        e.style.top = top + (2 + level*0.5) + "px";
-
-        if(hit(e,player)){
-            hp -= 10;
-
-            if(hp<=0){
-                gameOver();
-            }
-
-            update();
-        }
-
-        if(top > window.innerHeight){
-            e.remove();
-            clearInterval(t);
-        }
-
-    },30);
-
+function updateUI(){
+    document.getElementById("score").innerText=score;
+    document.getElementById("combo").innerText=combo;
+    document.getElementById("level").innerText=level;
 }
 
-function spawnChest(){
-
-    let c = document.createElement("div");
-    c.classList.add("chest");
-
-    c.style.left = Math.random()*window.innerWidth+"px";
-    c.style.top = Math.random()*300+"px";
-
-    document.body.appendChild(c);
-
-    setTimeout(()=>c.remove(),10000);
+/* PAUSE */
+function pauseGame(){
+    clearInterval(timer);
+    document.getElementById("game").style.display="none";
+    document.getElementById("pause").style.display="block";
 }
 
-function hit(a,b){
-    let r1 = a.getBoundingClientRect();
-    let r2 = b.getBoundingClientRect();
-
-    return !(r1.right<r2.left ||
-             r1.left>r2.right ||
-             r1.bottom<r2.top ||
-             r1.top>r2.bottom);
+function resumeGame(){
+    document.getElementById("pause").style.display="none";
+    document.getElementById("game").style.display="block";
+    startTimer();
 }
 
+/* GAME OVER */
 function gameOver(){
-    document.getElementById("deathScreen").style.display="block";
+    clearInterval(timer);
+    document.getElementById("game").style.display="none";
+    document.getElementById("gameover").style.display="block";
+
+    document.getElementById("finalScore").innerText=score;
 }
 
-function update(){
-    document.getElementById("hp").innerText = hp;
-    document.getElementById("money").innerText = money;
-    document.getElementById("level").innerText = level;
+/* TRY AGAIN */
+function restart(){
+    document.getElementById("gameover").style.display="none";
+    startGame();
 }
 
-setInterval(spawnEnemy,1000);
-setInterval(spawnChest,3000);
-
-setInterval(()=>{
-    level++;
-},15000);
-
-document.getElementById("vol").addEventListener("input",(e)=>{
-    document.getElementById("music").volume = e.target.value/100;
-});
-
-update();
+/* MENU */
+function goMenu(){
+    location.reload();
+}
 
 </script>
 
