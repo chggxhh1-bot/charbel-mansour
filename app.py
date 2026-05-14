@@ -1,5 +1,4 @@
-from flask import Flask
-
+﻿from flask import Flask
 app = Flask(__name__)
 
 @app.route("/")
@@ -8,264 +7,210 @@ def home():
 <!DOCTYPE html>
 <html>
 <head>
-<title>Emoji Game PRO MAX</title>
+<title>Emoji Game V7</title>
 
 <style>
 body{
-    margin:0;
-    font-family:Arial;
-    text-align:center;
-    color:white;
-
-    background:url("https://media.giphy.com/media/xT0GqtpF1NWd9VZL7q/giphy.gif") no-repeat center center fixed;
-    background-size:cover;
+  margin:0;
+  font-family:Arial;
+  text-align:center;
+  background:#111;
+  color:white;
 }
 
-/* SCREENS */
-.screen{
-    position:absolute;
-    width:100%;
-    height:100%;
-}
+.screen{display:none; padding-top:30px;}
+#menu{display:block;}
 
-#menu{ display:block; }
-#game{ display:none; }
-#gameover{ display:none; }
-#pause{ display:none; }
-
-/* BUTTONS */
 button{
-    padding:12px 18px;
-    margin:8px;
-    border:none;
-    border-radius:12px;
-    cursor:pointer;
-    font-size:16px;
+  padding:10px;
+  margin:5px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
 }
 
-/* HUD */
-#hud{
-    display:flex;
-    justify-content:space-around;
-    font-size:18px;
-    margin-top:10px;
-}
-
-/* BIG EMOJI */
-#emoji{
-    font-size:100px;
-    margin:25px;
-}
-
-/* TIMER */
-#timer{
-    font-size:20px;
-    color:yellow;
-}
-
-/* HANDICAP */
-#handicap{
-    display:none;
-    color:lime;
-    font-weight:bold;
-}
+#emoji{font-size:90px; margin:20px;}
 </style>
 </head>
 
 <body>
 
-<!-- 🎮 MENU -->
+<!-- MENU -->
 <div id="menu" class="screen">
+<h1>🎮 Emoji Game V7</h1>
 
-<h1>🎮 EMOJI GAME PRO</h1>
-
-<button onclick="setMode('humans')">👤 Humains</button>
-<button onclick="setMode('faces')">😀 Visages</button>
-<button onclick="setMode('cars')">🚗 Voitures</button>
+<button onclick="setMode('cars')">🚗 Cars</button>
+<button onclick="setMode('faces')">😀 Faces</button>
 
 <br><br>
 
-<button onclick="setDiff('normal')">Normal</button>
-<button onclick="setDiff('handicap')">♿ Handicap</button>
+<input id="player" placeholder="Your name">
 
 <br><br>
 
 <button onclick="startGame()">▶ START</button>
-
 </div>
 
-<!-- 🎯 GAME -->
+<!-- GAME -->
 <div id="game" class="screen">
 
-<div id="hud">
-    <div>Score: <span id="score">0</span></div>
-    <div>Combo: <span id="combo">0</span></div>
-    <div>Level: <span id="level">1</span></div>
-</div>
-
-<div id="timer">⏳ 120</div>
-
-<div id="handicap">♿ HANDICAP</div>
-
-<button onclick="pauseGame()">⏸ PAUSE</button>
+<h2>Score: <span id="score">0</span></h2>
 
 <div id="emoji">❓</div>
 
-<input id="input" placeholder="type answer">
+<input id="input" placeholder="type OR speak">
+
 <br><br>
 
-<button onclick="check()">SUBMIT</button>
+<button onclick="check()">OK</button>
+<button onclick="startVoice()">🎤 MIC</button>
 
 <p id="msg"></p>
 
-</div>
+<audio id="good" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+<audio id="bad" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
+<audio id="music" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12b6b1c1d2.mp3" loop></audio>
 
-<!-- ⏸ PAUSE -->
-<div id="pause" class="screen">
-
-<h1>⏸ PAUSE</h1>
-
-<button onclick="resumeGame()">▶ RESUME</button>
-<button onclick="goMenu()">🏠 MENU</button>
-
-</div>
-
-<!-- 💀 GAME OVER -->
-<div id="gameover" class="screen">
-
-<h1>💀 GAME OVER</h1>
-
-<p>Your score: <span id="finalScore"></span></p>
-
-<button onclick="restart()">🔁 TRY AGAIN</button>
-<button onclick="goMenu()">🏠 MENU</button>
+<h3>🏆 Leaderboard</h3>
+<ul id="board"></ul>
 
 </div>
 
 <script>
 
-let mode="humans";
+let mode="cars";
 let score=0;
-let combo=0;
-let level=1;
 let current="";
-let handicap=false;
+let answer="";
+let player="Player";
 
-let time=120;
-let timer;
-
+/* 🚗 DATA */
 const data={
- humans:["🧑","👨","👩","🧒","👶","🧓"],
- faces:["😀","😂","😍","😎","😭","😡","😱"],
- cars:["🚗","🚕","🚙","🏎️","🚓","🚑"]
+ cars:[
+  {emoji:"🚗", answer:"car"},
+  {emoji:"🚕", answer:"taxi"},
+  {emoji:"🚒", answer:"fire engine"},
+  {emoji:"🚚", answer:"truck"},
+  {emoji:"🚓", answer:"police car"}
+ ],
+ faces:[
+  {emoji:"😀", answer:"happy"},
+  {emoji:"😡", answer:"angry"},
+  {emoji:"😴", answer:"sleep"}
+ ]
 };
 
-/* MODE */
-function setMode(m){ mode=m; }
-
-/* DIFF */
-function setDiff(d){ handicap=(d==="handicap"); }
-
-/* START */
-function startGame(){
-    document.getElementById("menu").style.display="none";
-    document.getElementById("game").style.display="block";
-
-    if(handicap){
-        document.getElementById("handicap").style.display="block";
-    }
-
-    time=120;
-    score=0;
-    combo=0;
-    level=1;
-
-    startTimer();
-    next();
+/* 🌍 AI MULTI-LANG (10+ variations) */
+function aiNormalize(t){
+  return t.toLowerCase().trim();
 }
 
-/* TIMER */
-function startTimer(){
-    timer=setInterval(()=>{
-        time--;
-        document.getElementById("timer").innerText="⏳ "+time;
+function aiCheck(input, correct){
 
-        if(time<=0){
-            gameOver();
-        }
-    },1000);
+const map={
+ "car":["car","voiture","siyara","سيارة","auto","automobile"],
+ "taxi":["taxi","تاكسي"],
+ "fire engine":["fire engine","camion pompier","اطفاء","fire truck"],
+ "truck":["truck","camion","شاحنة"],
+ "police car":["police","voiture police","شرطة","douriye"],
+ "happy":["happy","smile","sourire","happy face","😀"],
+ "angry":["angry","rage","غاضب"],
+ "sleep":["sleep","dormir","نائم"]
+};
+
+let i=aiNormalize(input);
+let c=aiNormalize(correct);
+
+return map[c] ? map[c].includes(i) : i===c;
+}
+
+/* 🎮 START */
+function startGame(){
+  player=document.getElementById("player").value || "Player";
+
+  document.getElementById("menu").style.display="none";
+  document.getElementById("game").style.display="block";
+
+  document.getElementById("music").play();
+
+  next();
 }
 
 /* NEXT */
 function next(){
-    let list=data[mode];
-    current=list[Math.floor(Math.random()*list.length)];
+  let list=data[mode];
+  let item=list[Math.floor(Math.random()*list.length)];
 
-    document.getElementById("emoji").innerText=current;
-    document.getElementById("input").value="";
+  current=item.emoji;
+  answer=item.answer;
+
+  document.getElementById("emoji").innerText=current;
+  document.getElementById("input").value="";
+}
+
+/* 🔊 SOUND */
+function soundGood(){
+  document.getElementById("good").play();
+}
+
+function soundBad(){
+  document.getElementById("bad").play();
+}
+
+/* 🎤 VOICE */
+function startVoice(){
+  let rec = new(window.SpeechRecognition || window.webkitSpeechRecognition)();
+  rec.lang = "en-US";
+
+  rec.onresult = function(e){
+    document.getElementById("input").value = e.results[0][0].transcript;
+    check();
+  }
+
+  rec.start();
+}
+
+/* 🏆 LEADERBOARD */
+function saveScore(){
+  let board = JSON.parse(localStorage.getItem("board") || "[]");
+
+  board.push({name:player, score:score});
+  board.sort((a,b)=>b.score-a.score);
+  board = board.slice(0,5);
+
+  localStorage.setItem("board", JSON.stringify(board));
+  showBoard();
+}
+
+function showBoard(){
+  let board = JSON.parse(localStorage.getItem("board") || "[]");
+  let html="";
+
+  board.forEach(b=>{
+    html+=`<li>${b.name} - ${b.score}</li>`;
+  });
+
+  document.getElementById("board").innerHTML=html;
 }
 
 /* CHECK */
 function check(){
+  let val=document.getElementById("input").value;
 
-    let g=document.getElementById("input").value.trim();
+  if(aiCheck(val,answer)){
+    score+=10;
+    document.getElementById("msg").innerText="🔥 GOOD";
+    soundGood();
+  }else{
+    document.getElementById("msg").innerText="❌ WRONG";
+    soundBad();
+  }
 
-    let ok=false;
+  document.getElementById("score").innerText=score;
 
-    if(handicap) ok=true;
-    else if(g===current) ok=true;
+  saveScore();
 
-    if(ok){
-        combo++;
-        score+=combo*10;
-        level++;
-        document.getElementById("msg").innerText="🔥 GOOD";
-    }else{
-        combo=0;
-        document.getElementById("msg").innerText="❌ WRONG";
-    }
-
-    updateUI();
-    setTimeout(next,600);
-}
-
-function updateUI(){
-    document.getElementById("score").innerText=score;
-    document.getElementById("combo").innerText=combo;
-    document.getElementById("level").innerText=level;
-}
-
-/* PAUSE */
-function pauseGame(){
-    clearInterval(timer);
-    document.getElementById("game").style.display="none";
-    document.getElementById("pause").style.display="block";
-}
-
-function resumeGame(){
-    document.getElementById("pause").style.display="none";
-    document.getElementById("game").style.display="block";
-    startTimer();
-}
-
-/* GAME OVER */
-function gameOver(){
-    clearInterval(timer);
-    document.getElementById("game").style.display="none";
-    document.getElementById("gameover").style.display="block";
-
-    document.getElementById("finalScore").innerText=score;
-}
-
-/* TRY AGAIN */
-function restart(){
-    document.getElementById("gameover").style.display="none";
-    startGame();
-}
-
-/* MENU */
-function goMenu(){
-    location.reload();
+  setTimeout(next,600);
 }
 
 </script>
@@ -274,5 +219,5 @@ function goMenu(){
 </html>
 """
 
-if __name__ == "__main__":
+if __name__=="__main__":
     app.run(host="0.0.0.0", port=10000)
